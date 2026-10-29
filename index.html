@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>一二与布布的蛋糕大胃王挑战</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(180deg, #FFE873 0%, #FFB649 100%);
+      --text-main: #3C2213;
+      --text-stroke: #2E1B0E;
+      --accent-pink: #FF4F79;
+      --accent-red: #FF334B;
+      --card-bg: #FFFFFF;
+      --border-thick: 3px solid #2E1B0E;
+      --shadow-block: 0 6px 0px #2E1B0E;
+      --shadow-block-sm: 0 4px 0px #2E1B0E;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      background-color: #F7931E;
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* 手机端容器 */
+    #app-container {
+      width: 100vw;
+      max-width: 430px;
+      height: 100vh;
+      max-height: 920px;
+      background: var(--bg-gradient);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    /* 全屏粒子/蛋糕雨 Canvas：必须绝对贴合容器 */
+    #fx-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    .header-bar {
+      height: 68px;
+      padding: 12px 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .icon-btn {
+      background: #FFFFFF;
+      border: var(--border-thick);
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-block-sm);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .icon-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0px #2E1B0E;
+    }
+
+    .stats-card {
+      background: #FFFFFF;
+      border: var(--border-thick);
+      border-radius: 18px;
+      padding: 4px 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      box-shadow: var(--shadow-block-sm);
+    }
+    .stats-label {
+      font-size: 11px;
+      font-weight: 900;
+      color: #995A1E;
+    }
+    .stats-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--accent-red);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .fever-wrapper {
+      padding: 10px 16px 0;
+      z-index: 10;
+    }
+    .fever-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 900;
+      color: #4A2800;
+      margin-bottom: 6px;
+      text-shadow: 0 1px 0 #FFE29C;
+    }
+    .fever-track {
+      width: 100%;
+      height: 18px;
+      background: #FFFFFF;
+      border: var(--border-thick);
+      border-radius: 20px;
+      overflow: hidden;
+      padding: 2px;
+      box-shadow: var(--shadow-block-sm);
+    }
+    .fever-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #FF6584 0%, #FF2A55 50%, #FFDF00 100%);
+      border-radius: 12px;
+      transition: width 0.15s ease-out;
+    }
+
+    .stage-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .bubble-tip {
+      position: absolute;
+      top: 14%;
+      background: #FFFFFF;
+      border: var(--border-thick);
+      padding: 8px 18px;
+      border-radius: 22px;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--accent-red);
+      box-shadow: var(--shadow-block-sm);
+      opacity: 0;
+      transform: translateY(10px) scale(0.9);
+      transition: all 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      pointer-events: none;
+      z-index: 8;
+    }
+    .bubble-tip.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .character-wrap {
+      width: 230px;
+      height: 230px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.1s ease-out;
+    }
+    .character-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+    .character-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .munch-left {
+      transform: scale(1.14, 0.88) rotate(-6deg);
+    }
+    .munch-right {
+      transform: scale(1.14, 0.88) rotate(6deg);
+    }
+    .choked-anim {
+      animation: chokeWobble 0.35s ease-in-out infinite;
+    }
+    @keyframes chokeWobble {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-6px) rotate(-8deg); }
+      75% { transform: translateY(6px) rotate(8deg); }
+    }
+    .fever-vacuum {
+      animation: vacuumPulse 0.12s ease-in-out infinite alternate;
+    }
+    @keyframes vacuumPulse {
+      0% { transform: scale(1.06, 0.94) translateY(4px); }
+      100% { transform: scale(0.94, 1.06) translateY(-4px); }
+    }
+
+    .table-stand {
+      width: 290px;
+      height: 52px;
+      background: #FFF3CC;
+      border: var(--border-thick);
+      border-radius: 26px;
+      box-shadow: var(--shadow-block);
+      margin-top: -16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .plate-item {
+      font-size: 38px;
+      transform: translateY(-10px);
+      transition: transform 0.1s ease;
+    }
+
+    .controls-zone {
+      padding: 12px 18px 34px;
+      display: flex;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .tap-btn {
+      flex: 1;
+      height: 90px;
+      background: #FFFFFF;
+      border: 4px solid var(--text-stroke);
+      border-radius: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      box-shadow: 0 7px 0px var(--text-stroke);
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.08s;
+    }
+    .tap-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 2px 0px var(--text-stroke);
+      background: #FFF8E1;
+    }
+    .btn-key-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+    .btn-key-desc {
+      font-size: 12px;
+      font-weight: 700;
+      color: #A36B3B;
+    }
+
+    .fever-overlay-hint {
+      position: absolute;
+      top: 74px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      pointer-events: none;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .fever-overlay-hint.active {
+      opacity: 1;
+    }
+    .fever-badge {
+      display: inline-block;
+      background: #FF0055;
+      border: var(--border-thick);
+      color: #FFFFFF;
+      padding: 8px 22px;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 900;
+      box-shadow: var(--shadow-block-sm);
+      animation: badgeBounce 0.5s infinite alternate;
+    }
+    @keyframes badgeBounce {
+      0% { transform: scale(0.95); }
+      100% { transform: scale(1.06); }
+    }
+
+    .modal-cover {
+      position: absolute;
+      inset: 0;
+      background: rgba(30, 15, 5, 0.65);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-cover.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-dialog {
+      width: 100%;
+      background: #FFFDF7;
+      border-radius: 32px;
+      border: 4px solid var(--text-stroke);
+      padding: 26px 20px;
+      box-shadow: 0 10px 0px var(--text-stroke);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      text-shadow: 0 2px 0 #FFE29C;
+    }
+    .modal-subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      color: #8C5628;
+      margin-bottom: 18px;
+    }
+
+    .role-select-box {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .role-card {
+      flex: 1;
+      padding: 14px 6px;
+      border-radius: 20px;
+      border: 3px solid #D1BFA5;
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .role-card.selected {
+      border: 3.5px solid var(--accent-red);
+      background: #FFF4F6;
+      box-shadow: 0 5px 0px var(--accent-red);
+      transform: translateY(-2px);
+    }
+    .role-avatar-preview {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #E3D4C1;
+    }
+    .role-name {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+    .role-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: #9C7553;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #F0E5D5;
+    }
+    .role-card.selected .role-tag {
+      background: #FFD4DC;
+      color: var(--accent-red);
+    }
+
+    .primary-btn {
+      width: 100%;
+      height: 56px;
+      background: #FF3B5C;
+      color: #FFFFFF;
+      border: 3.5px solid var(--text-stroke);
+      border-radius: 28px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 6px 0px var(--text-stroke);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.08s;
+    }
+    .primary-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0px var(--text-stroke);
+    }
+
+    .secondary-btn {
+      width: 100%;
+      height: 48px;
+      background: #FFFFFF;
+      color: var(--text-main);
+      border: 3px solid var(--text-stroke);
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 12px;
+      box-shadow: 0 4px 0px var(--text-stroke);
+      transition: all 0.08s;
+    }
+    .secondary-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0px var(--text-stroke);
+      background: #FFF9E6;
+    }
+
+    .rank-list {
+      width: 100%;
+      max-height: 240px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #FFF2D1;
+      border: 2px solid var(--text-stroke);
+      border-radius: 16px;
+      font-size: 14px;
+    }
+    .rank-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 2px solid var(--text-stroke);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+    .rank-row:nth-child(1) { background: #FFE082; }
+    .rank-row:nth-child(2) { background: #ECEFF1; }
+    .rank-row:nth-child(3) { background: #FFCCBC; }
+
+    #countdown-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 200, 50, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 25;
+      font-size: 96px;
+      font-weight: 900;
+      color: #FF1A4B;
+      text-shadow: 4px 4px 0 #FFFFFF, 7px 7px 0 var(--text-stroke);
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <canvas id="fx-canvas"></canvas>
+
+  <header class="header-bar">
+    <button class="icon-btn" id="btn-open-rank">
+      <span>🏆</span>
+      <span>战绩</span>
+    </button>
+
+    <div class="stats-card">
+      <span class="stats-label">SCORE</span>
+      <span class="stats-val" id="score-val">0</span>
+    </div>
+
+    <div class="stats-card">
+      <span class="stats-label">TIME</span>
+      <span class="stats-val" id="time-val">30</span>
+    </div>
+  </header>
+
+  <div class="fever-wrapper">
+    <div class="fever-meta">
+      <span id="role-tag-indicator">当前角色: 一二</span>
+      <span id="fever-text">大招蓄力 0%</span>
+    </div>
+    <div class="fever-track">
+      <div class="fever-fill" id="fever-bar"></div>
+    </div>
+  </div>
+
+  <div class="fever-overlay-hint" id="fever-hint">
+    <div class="fever-badge">🔥 狂暴大胃王！手指全屏疯狂乱划！ 🔥</div>
+  </div>
+
+  <div class="stage-area">
+    <div class="bubble-tip" id="bubble-tip">咳咳！按错啦！</div>
+
+    <div class="character-wrap" id="character-avatar">
+      <div id="avatar-mount-point" style="width:100%; height:100%;"></div>
+    </div>
+
+    <div class="table-stand">
+      <div class="plate-item" id="cake-plate">🍰</div>
+    </div>
+  </div>
+
+  <div class="controls-zone" id="controls-panel">
+    <button class="tap-btn" id="btn-left">
+      <span class="btn-key-title">左 爪 🐾</span>
+      <span class="btn-key-desc">抓一口</span>
+    </button>
+    <button class="tap-btn" id="btn-right">
+      <span class="btn-key-title">右 爪 🐾</span>
+      <span class="btn-key-desc">塞嘴里</span>
+    </button>
+  </div>
+
+  <div id="countdown-overlay">3</div>
+
+  <!-- 首页大屏 -->
+  <div class="modal-cover active" id="modal-home">
+    <div class="modal-dialog">
+      <div class="modal-title">🍰 蛋糕大胃王挑战</div>
+      <div class="modal-subtitle">左右爪交替狂敲 · 蓄满大招全屏吸入</div>
+
+      <!-- 角色选择卡片 -->
+      <div class="role-select-box">
+        <div class="role-card selected" id="card-yier" onclick="selectRole('yier')">
+          <div class="role-avatar-preview">
+            <img src="./images/yier_avatar.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+          </div>
+          <span class="role-name">一二</span>
+          <span class="role-tag">呆萌小熊猫</span>
+        </div>
+
+        <div class="role-card" id="card-bubu" onclick="selectRole('bubu')">
+          <div class="role-avatar-preview">
+            <img src="./images/bubu_avatar.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+          </div>
+          <span class="role-name">布布</span>
+          <span class="role-tag">贪吃小棕熊</span>
+        </div>
+      </div>
+
+      <button class="primary-btn" id="btn-start-game">
+        <span>🔥 立即开吃！</span>
+      </button>
+
+      <button class="secondary-btn" id="btn-open-rank-home">
+        <span>查看排行榜 🏆</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 结算弹窗 -->
+  <div class="modal-cover" id="modal-settle">
+    <div class="modal-dialog">
+      <div class="modal-title" id="settle-title">吃撑啦！</div>
+      <div class="modal-subtitle" id="settle-subtitle">整张桌子的蛋糕都被消灭干净！</div>
+
+      <div style="margin: 12px 0 20px;">
+        <div style="font-size: 13px; font-weight:800; color: #8C5628; margin-bottom: 4px;">本局最终得分</div>
+        <div style="font-size: 48px; font-weight: 900; color: var(--accent-red); text-shadow: 2px 2px 0 #FFE89C;" id="final-score">0</div>
+        <div id="new-record-badge" style="display:none; font-size:13px; font-weight:900; color:#FF0055; margin-top:4px;">🎉 创下全新历史最高纪录！</div>
+      </div>
+
+      <button class="primary-btn" id="btn-restart-game">
+        <span>再吃一轮 🍰</span>
+      </button>
+      <button class="secondary-btn" id="btn-back-home">
+        <span>返回首页</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 排行榜弹窗 -->
+  <div class="modal-cover" id="modal-rank">
+    <div class="modal-dialog">
+      <div class="modal-title">🏆 历史最高分</div>
+      <div class="modal-subtitle">看看你的极限手速到底有多猛！</div>
+
+      <div class="rank-list" id="rank-records-container"></div>
+
+      <button class="primary-btn" id="btn-close-rank">
+        <span>关闭</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ========================================================
+     1. 自定义素材插槽
+     ======================================================== */
+  const CUSTOM_ASSETS = {
+    yier: {
+      idle: "./images/yier_idle.png",     // 填入相对路径
+      chew: "./images/yier_chew.png",
+      choked: "./images/yier_choked.png",
+      fever: "./images/yier_fever.png"
+    },
+    bubu: {
+      idle: "./images/bubu_idle.png",
+      chew: "./images/bubu_chew.png",
+      choked: "./images/bubu_choked.png",
+      fever: "./images/bubu_fever.png"
+    }
+  };
+
+  /* ========================================================
+     2. Web Audio 音效
+     ======================================================== */
+  const SoundFX = {
+    ctx: null,
+    init() {
+      if (!this.ctx) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    },
+    playEat() {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      const f = 400 + Math.random() * 90;
+      osc.frequency.setValueAtTime(f, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(f + 200, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.08);
+    },
+    playChoke() {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.2);
+    },
+    playSwoosh() {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1300, this.ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.15);
+    }
+  };
+
+  /* ========================================================
+     3. 角色 SVG 生成
+     ======================================================== */
+  function getCharacterSVG(role, state) {
+    if (role === 'yier') {
+      const earColor = "#261D1A";
+      const bodyColor = "#FFFFFF";
+      const strokeColor = "#261D1A";
+      const blushColor = "#FF8FA3";
+      const tieColor = "#261D1A";
+
+      let mouthFace = `<path d="M84 106 Q92 114 100 106 Q108 114 116 106" fill="none" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round"/>`;
+      let eyes = `
+        <circle cx="68" cy="98" r="8.5" fill="${strokeColor}"/>
+        <circle cx="132" cy="98" r="8.5" fill="${strokeColor}"/>
+      `;
+
+      if (state === 'chew') {
+        mouthFace = `
+          <ellipse cx="100" cy="112" rx="17" ry="13" fill="#FF3355" stroke="${strokeColor}" stroke-width="4.5"/>
+          <path d="M92 116 Q100 110 108 116" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+        `;
+      } else if (state === 'choked') {
+        eyes = `
+          <path d="M60 90 L76 104 M76 90 L60 104" stroke="${strokeColor}" stroke-width="6" stroke-linecap="round"/>
+          <path d="M124 90 L140 104 M140 90 L124 104" stroke="${strokeColor}" stroke-width="6" stroke-linecap="round"/>
+        `;
+        mouthFace = `<ellipse cx="100" cy="114" rx="8" ry="11" fill="${strokeColor}"/>`;
+      } else if (state === 'fever') {
+        eyes = `
+          <polygon points="68,88 72,95 79,95 73,99 75,106 68,102 61,106 63,99 57,95 64,95" fill="#FFCC00" stroke="${strokeColor}" stroke-width="2"/>
+          <polygon points="132,88 136,95 143,95 137,99 139,106 132,102 125,106 127,99 121,95 128,95" fill="#FFCC00" stroke="${strokeColor}" stroke-width="2"/>
+        `;
+        mouthFace = `
+          <ellipse cx="100" cy="118" rx="28" ry="22" fill="#261D1A"/>
+          <ellipse cx="100" cy="124" rx="18" ry="12" fill="#FF2650"/>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 200 200" class="character-svg">
+          <ellipse cx="44" cy="42" rx="25" ry="25" fill="${earColor}" stroke="${strokeColor}" stroke-width="4"/>
+          <ellipse cx="156" cy="42" rx="25" ry="25" fill="${earColor}" stroke="${strokeColor}" stroke-width="4"/>
+          <ellipse cx="100" cy="160" rx="48" ry="36" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="7"/>
+          <ellipse cx="48" cy="154" rx="15" ry="12" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="6"/>
+          <ellipse cx="152" cy="154" rx="15" ry="12" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="6"/>
+          <ellipse cx="100" cy="100" rx="80" ry="70" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="7.5"/>
+          <ellipse cx="44" cy="115" rx="19" ry="14" fill="${blushColor}"/>
+          <ellipse cx="156" cy="115" rx="19" ry="14" fill="${blushColor}"/>
+          <path d="M90 162 L100 155 L110 162 L100 169 Z" fill="${tieColor}"/>
+          <ellipse cx="88" cy="162" rx="9" ry="7" fill="${tieColor}"/>
+          <ellipse cx="112" cy="162" rx="9" ry="7" fill="${tieColor}"/>
+          ${eyes}
+          ${mouthFace}
+        </svg>
+      `;
+    } else {
+      const earColor = "#663814";
+      const bodyColor = "#B86F37";
+      const strokeColor = "#361B07";
+      const muzzleColor = "#FFE0BA";
+      const blushColor = "#FF8075";
+
+      let mouthFace = `<path d="M94 108 Q100 115 106 108" fill="none" stroke="${strokeColor}" stroke-width="4.5" stroke-linecap="round"/>`;
+      let eyes = `
+        <circle cx="70" cy="94" r="8" fill="${strokeColor}"/>
+        <circle cx="130" cy="94" r="8" fill="${strokeColor}"/>
+      `;
+
+      if (state === 'chew') {
+        mouthFace = `<ellipse cx="100" cy="112" rx="14" ry="11" fill="#FF3355" stroke="${strokeColor}" stroke-width="3.5"/>`;
+      } else if (state === 'choked') {
+        eyes = `
+          <path d="M62 88 L78 98 M78 88 L62 98" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round"/>
+          <path d="M122 88 L138 98 M138 88 L122 98" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round"/>
+        `;
+        mouthFace = `<ellipse cx="100" cy="112" rx="7" ry="9" fill="${strokeColor}"/>`;
+      } else if (state === 'fever') {
+        eyes = `
+          <polygon points="70,84 74,91 81,91 75,95 77,102 70,98 63,102 65,95 59,91 66,91" fill="#FFCC00" stroke="${strokeColor}" stroke-width="2"/>
+          <polygon points="130,84 134,91 141,91 135,95 137,102 130,98 123,102 125,95 119,91 126,91" fill="#FFCC00" stroke="${strokeColor}" stroke-width="2"/>
+        `;
+        mouthFace = `
+          <ellipse cx="100" cy="116" rx="24" ry="20" fill="#361B07"/>
+          <ellipse cx="100" cy="122" rx="15" ry="10" fill="#FF2650"/>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 200 200" class="character-svg">
+          <ellipse cx="44" cy="44" rx="24" ry="24" fill="${earColor}" stroke="${strokeColor}" stroke-width="4"/>
+          <ellipse cx="44" cy="44" rx="13" ry="13" fill="#FFE0BA"/>
+          <ellipse cx="156" cy="44" rx="24" ry="24" fill="${earColor}" stroke="${strokeColor}" stroke-width="4"/>
+          <ellipse cx="156" cy="44" rx="13" ry="13" fill="#FFE0BA"/>
+          <ellipse cx="100" cy="160" rx="48" ry="36" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="7"/>
+          <ellipse cx="48" cy="154" rx="15" ry="12" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="6"/>
+          <ellipse cx="152" cy="154" rx="15" ry="12" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="6"/>
+          <ellipse cx="100" cy="100" rx="78" ry="68" fill="${bodyColor}" stroke="${strokeColor}" stroke-width="7.5"/>
+          <ellipse cx="100" cy="108" rx="28" ry="22" fill="#muzzleColor" stroke="${strokeColor}" stroke-width="3.5"/>
+          <ellipse cx="100" cy="98" rx="8" ry="6" fill="${strokeColor}"/>
+          <ellipse cx="48" cy="112" rx="16" ry="11" fill="${blushColor}"/>
+          <ellipse cx="152" cy="112" rx="16" ry="11" fill="${blushColor}"/>
+          <ellipse cx="88" cy="162" rx="10" ry="8" fill="#FF3355" stroke="${strokeColor}" stroke-width="2"/>
+          <ellipse cx="112" cy="162" rx="10" ry="8" fill="#FF3355" stroke="${strokeColor}" stroke-width="2"/>
+          <circle cx="100" cy="162" r="6" fill="#D6183B"/>
+          ${eyes}
+          ${mouthFace}
+        </svg>
+      `;
+    }
+  }
+
+  /* ========================================================
+     4. 高保真矢量甜品离屏画布（彻底告别Emoji字体形变）
+     ======================================================== */
+  const CAKE_SVGS = [
+    // 1. 草莓千层切块
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <path d="M12 60 L68 60 L70 36 L12 44 Z" fill="#FFE3A8" stroke="#3C2213" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M12 44 L70 36 L40 18 Z" fill="#FFF8E7" stroke="#3C2213" stroke-width="3.5" stroke-linejoin="round"/>
+      <line x1="12" y1="52" x2="69" y2="48" stroke="#FF4D6D" stroke-width="4"/>
+      <ellipse cx="38" cy="22" rx="10" ry="12" fill="#FF2A4D" stroke="#3C2213" stroke-width="3"/>
+      <path d="M38 12 L35 8 M38 12 L41 8" stroke="#2B9348" stroke-width="3" stroke-linecap="round"/>
+    </svg>`,
+    // 2. 奶油纸杯蛋糕
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <path d="M22 45 L28 70 L52 70 L58 45 Z" fill="#E09F67" stroke="#3C2213" stroke-width="3.5" stroke-linejoin="round"/>
+      <ellipse cx="40" cy="42" rx="24" ry="16" fill="#FFF5EA" stroke="#3C2213" stroke-width="3.5"/>
+      <circle cx="40" cy="25" r="8" fill="#FF2A4D" stroke="#3C2213" stroke-width="3"/>
+      <circle cx="32" cy="38" r="2.5" fill="#FF6584"/>
+      <circle cx="46" cy="40" r="2.5" fill="#FFDF00"/>
+    </svg>`,
+    // 3. 巨型大草莓
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <path d="M40 70 C16 54 16 32 26 22 C36 12 44 12 54 22 C64 32 64 54 40 70 Z" fill="#FF2A4D" stroke="#3C2213" stroke-width="3.5"/>
+      <path d="M40 16 L40 8 M34 18 L26 14 M46 18 L54 14" stroke="#2B9348" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="34" cy="36" r="2" fill="#FFEAA7"/><circle cx="46" cy="38" r="2" fill="#FFEAA7"/><circle cx="40" cy="50" r="2" fill="#FFEAA7"/>
+    </svg>`,
+    // 4. 焦糖布丁
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <path d="M20 62 L26 36 L54 36 L60 62 Z" fill="#FFEAA7" stroke="#3C2213" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M25 36 Q40 42 55 36 Q50 28 40 28 Q30 28 25 36 Z" fill="#7F4F24" stroke="#3C2213" stroke-width="3"/>
+      <circle cx="40" cy="22" r="6" fill="#FF2A4D" stroke="#3C2213" stroke-width="2.5"/>
+    </svg>`,
+    // 5. 巧克力甜甜圈
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+      <ellipse cx="40" cy="40" rx="30" ry="30" fill="#E09F67" stroke="#3C2213" stroke-width="4"/>
+      <ellipse cx="40" cy="40" rx="26" ry="26" fill="#6F4E37"/>
+      <circle cx="40" cy="40" r="11" fill="#FFB649" stroke="#3C2213" stroke-width="4"/>
+      <circle cx="30" cy="26" r="2" fill="#FFFFFF"/><circle cx="50" cy="28" r="2" fill="#FF4D6D"/><circle cx="32" cy="52" r="2" fill="#FFEAA7"/>
+    </svg>`
+  ];
+
+  const CAKE_IMAGES = [];
+  CAKE_SVGS.forEach(svgStr => {
+    const img = new Image();
+    img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgStr);
+    CAKE_IMAGES.push(img);
+  });
+
+  /* ========================================================
+     5. 游戏主逻辑系统
+     ======================================================== */
+  const Game = {
+    currentRole: 'yier',
+    state: 'MENU',
+    score: 0,
+    timeLeft: 30,
+    feverEnergy: 0,
+    lastButton: null,
+    timerInterval: null,
+    feverTimeout: null,
+    cakes: [],
+
+    init() {
+      this.initCanvas();
+      this.bindEvents();
+      this.renderCharacter('idle');
+      this.updateUI();
+    },
+
+    selectRole(role) {
+      if (this.state === 'PLAYING' || this.state === 'FEVER') return;
+      this.currentRole = role;
+      document.getElementById('card-yier').classList.toggle('selected', role === 'yier');
+      document.getElementById('card-bubu').classList.toggle('selected', role === 'bubu');
+      document.getElementById('role-tag-indicator').innerText = `当前角色: ${role === 'yier' ? '一二' : '布布'}`;
+      this.renderCharacter('idle');
+    },
+
+    renderCharacter(state) {
+      const mount = document.getElementById('avatar-mount-point');
+      const customImg = CUSTOM_ASSETS[this.currentRole][state];
+
+      if (customImg) {
+        mount.innerHTML = `<img src="${customImg}" class="character-img" alt="${this.currentRole}">`;
+      } else {
+        mount.innerHTML = getCharacterSVG(this.currentRole, state);
+      }
+    },
+
+    startCountdown() {
+      SoundFX.init();
+      document.getElementById('modal-home').classList.remove('active');
+      document.getElementById('modal-settle').classList.remove('active');
+      const overlay = document.getElementById('countdown-overlay');
+      overlay.style.display = 'flex';
+      let count = 3;
+      overlay.innerText = count;
+
+      const cd = setInterval(() => {
+        count--;
+        if (count > 0) {
+          overlay.innerText = count;
+        } else {
+          clearInterval(cd);
+          overlay.style.display = 'none';
+          this.startGameplay();
+        }
+      }, 700);
+    },
+
+    startGameplay() {
+      this.state = 'PLAYING';
+      this.score = 0;
+      this.timeLeft = 30;
+      this.feverEnergy = 0;
+      this.lastButton = null;
+      this.renderCharacter('idle');
+      this.updateUI();
+
+      clearInterval(this.timerInterval);
+      this.timerInterval = setInterval(() => {
+        this.timeLeft--;
+        this.updateUI();
+        if (this.timeLeft <= 0) {
+          this.endGame();
+        }
+      }, 1000);
+    },
+
+    handleTap(side) {
+      if (this.state !== 'PLAYING') return;
+
+      const avatar = document.getElementById('character-avatar');
+
+      if (this.lastButton === side) {
+        this.state = 'CHOKED';
+        SoundFX.playChoke();
+        this.renderCharacter('choked');
+        avatar.classList.add('choked-anim');
+        this.showBubble("咳咳！按错啦！");
+
+        setTimeout(() => {
+          if (this.state === 'CHOKED') {
+            avatar.classList.remove('choked-anim');
+            this.renderCharacter('idle');
+            this.state = 'PLAYING';
+            this.hideBubble();
+          }
+        }, 700);
+        return;
+      }
+
+      this.lastButton = side;
+      SoundFX.playEat();
+      this.score += 10;
+      this.feverEnergy += 7;
+
+      avatar.classList.remove('munch-left', 'munch-right');
+      void avatar.offsetWidth;
+      avatar.classList.add(side === 'LEFT' ? 'munch-left' : 'munch-right');
+      this.renderCharacter('chew');
+
+      const plate = document.getElementById('cake-plate');
+      plate.style.transform = `translateY(-10px) scale(${1 + Math.random()*0.2}) rotate(${(Math.random()-0.5)*16}deg)`;
+
+      const container = document.getElementById('app-container').getBoundingClientRect();
+      const rect = avatar.getBoundingClientRect();
+      createCrumbs(rect.left - container.left + rect.width / 2, rect.top - container.top + rect.height * 0.65, 6);
+
+      setTimeout(() => {
+        if (this.state === 'PLAYING') {
+          this.renderCharacter('idle');
+        }
+      }, 120);
+
+      if (this.feverEnergy >= 100) {
+        this.triggerFever();
+      }
+      this.updateUI();
+    },
+
+    triggerFever() {
+      this.state = 'FEVER';
+      this.feverEnergy = 100;
+      SoundFX.playSwoosh();
+
+      const avatar = document.getElementById('character-avatar');
+      avatar.classList.add('fever-vacuum');
+      this.renderCharacter('fever');
+
+      document.getElementById('fever-hint').classList.add('active');
+
+      this.cakes = [];
+      for (let i = 0; i < 22; i++) {
+        spawnFloatingCake();
+      }
+
+      clearTimeout(this.feverTimeout);
+      this.feverTimeout = setTimeout(() => {
+        this.exitFever();
+      }, 5000);
+    },
+
+    exitFever() {
+      if (this.state !== 'FEVER') return;
+      this.state = 'PLAYING';
+      this.feverEnergy = 0;
+      const avatar = document.getElementById('character-avatar');
+      avatar.classList.remove('fever-vacuum');
+      document.getElementById('fever-hint').classList.remove('active');
+      this.renderCharacter('idle');
+      this.cakes = [];
+      this.updateUI();
+    },
+
+    endGame() {
+      clearInterval(this.timerInterval);
+      clearTimeout(this.feverTimeout);
+      this.state = 'SETTLE';
+      this.cakes = [];
+      this.exitFever();
+
+      const isNew = saveRecord(this.score, this.currentRole);
+      document.getElementById('final-score').innerText = this.score;
+      document.getElementById('new-record-badge').style.display = isNew ? 'block' : 'none';
+      document.getElementById('modal-settle').classList.add('active');
+    },
+
+    showBubble(text) {
+      const b = document.getElementById('bubble-tip');
+      b.innerText = text;
+      b.classList.add('show');
+    },
+    hideBubble() {
+      document.getElementById('bubble-tip').classList.remove('show');
+    },
+
+    updateUI() {
+      document.getElementById('score-val').innerText = this.score;
+      document.getElementById('time-val').innerText = Math.max(0, this.timeLeft);
+      document.getElementById('fever-bar').style.width = Math.min(100, this.feverEnergy) + '%';
+      document.getElementById('fever-text').innerText = this.state === 'FEVER' ? '🔥 狂暴大胃王中' : `大招蓄力 ${Math.floor(this.feverEnergy)}%`;
+    },
+
+    /* 关键修复：Canvas尺寸严格绑定容器宽高，杜绝横向变形 */
+    initCanvas() {
+      const canvas = document.getElementById('fx-canvas');
+      const container = document.getElementById('app-container');
+      const resize = () => {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+    },
+
+    bindEvents() {
+      const btnL = document.getElementById('btn-left');
+      const btnR = document.getElementById('btn-right');
+
+      const triggerLeft = (e) => { e.preventDefault(); this.handleTap('LEFT'); };
+      const triggerRight = (e) => { e.preventDefault(); this.handleTap('RIGHT'); };
+
+      btnL.addEventListener('touchstart', triggerLeft, { passive: false });
+      btnL.addEventListener('mousedown', triggerLeft);
+      btnR.addEventListener('touchstart', triggerRight, { passive: false });
+      btnR.addEventListener('mousedown', triggerRight);
+
+      document.getElementById('btn-start-game').onclick = () => this.startCountdown();
+      document.getElementById('btn-restart-game').onclick = () => this.startCountdown();
+      document.getElementById('btn-back-home').onclick = () => {
+        document.getElementById('modal-settle').classList.remove('active');
+        document.getElementById('modal-home').classList.add('active');
+      };
+
+      document.getElementById('btn-open-rank').onclick = () => showRankModal();
+      document.getElementById('btn-open-rank-home').onclick = () => showRankModal();
+      document.getElementById('btn-close-rank').onclick = () => {
+        document.getElementById('modal-rank').classList.remove('active');
+      };
+
+      const container = document.getElementById('app-container');
+      window.addEventListener('touchmove', (e) => {
+        if (this.state !== 'FEVER') return;
+        const touch = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        handleSwipeAt(touch.clientX - rect.left, touch.clientY - rect.top);
+      }, { passive: true });
+
+      window.addEventListener('mousemove', (e) => {
+        if (this.state !== 'FEVER') return;
+        const rect = container.getBoundingClientRect();
+        handleSwipeAt(e.clientX - rect.left, e.clientY - rect.top);
+      });
+    }
+  };
+
+  function selectRole(role) {
+    Game.selectRole(role);
+  }
+
+  /* ========================================================
+     6. Canvas 渲染循环 (精准饱满等比例甜品)
+     ======================================================== */
+  const canvas = document.getElementById('fx-canvas');
+  const ctx = canvas.getContext('2d');
+  let crumbs = [];
+
+  function spawnFloatingCake() {
+    Game.cakes.push({
+      x: Math.random() * (canvas.width - 90) + 45,
+      y: Math.random() * -canvas.height * 0.9,
+      speedY: 2.8 + Math.random() * 2.6,
+      img: CAKE_IMAGES[Math.floor(Math.random() * CAKE_IMAGES.length)],
+      size: 58, // 1:1 饱满厚实尺寸
+      scale: 1,
+      sucked: false
+    });
+  }
+
+  function handleSwipeAt(x, y) {
+    for (let c of Game.cakes) {
+      if (!c.sucked) {
+        const dist = Math.hypot(c.x - x, c.y - y);
+        if (dist < 50) {
+          c.sucked = true;
+          Game.score += 25;
+          SoundFX.playEat();
+          createCrumbs(c.x, c.y, 6);
+        }
+      }
+    }
+  }
+
+  function createCrumbs(x, y, count = 5) {
+    const colors = ['#FF3366', '#FFD200', '#FFFFFF', '#663300'];
+    for (let i = 0; i < count; i++) {
+      crumbs.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.7) * 8,
+        radius: 3 + Math.random() * 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1
+      });
+    }
+  }
+
+  function renderLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (Game.state === 'FEVER') {
+      const container = document.getElementById('app-container').getBoundingClientRect();
+      const avatar = document.getElementById('character-avatar').getBoundingClientRect();
+      const mouthX = avatar.left - container.left + avatar.width / 2;
+      const mouthY = avatar.top - container.top + avatar.height * 0.6;
+
+      for (let i = Game.cakes.length - 1; i >= 0; i--) {
+        const c = Game.cakes[i];
+
+        if (c.sucked) {
+          c.x += (mouthX - c.x) * 0.22;
+          c.y += (mouthY - c.y) * 0.22;
+          c.scale *= 0.82;
+          if (c.scale < 0.12) {
+            Game.cakes.splice(i, 1);
+            spawnFloatingCake();
+            continue;
+          }
+        } else {
+          c.y += c.speedY;
+          if (c.y > canvas.height + 40) {
+            c.y = -50;
+            c.x = Math.random() * (canvas.width - 90) + 45;
+          }
+        }
+
+        ctx.save();
+        const drawSize = c.size * c.scale;
+        // 关键保证：按 1:1 正方形居中绘制，杜绝一切宽高挤压变形
+        ctx.drawImage(c.img, c.x - drawSize / 2, c.y - drawSize / 2, drawSize, drawSize);
+        ctx.restore();
+      }
+    }
+
+    for (let i = crumbs.length - 1; i >= 0; i--) {
+      const p = crumbs[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.25;
+      p.alpha -= 0.025;
+
+      if (p.alpha <= 0) {
+        crumbs.splice(i, 1);
+        continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    requestAnimationFrame(renderLoop);
+  }
+  requestAnimationFrame(renderLoop);
+
+  /* ========================================================
+     7. 本地排行榜
+     ======================================================== */
+  const STORAGE_KEY = 'yier_bubu_cake_ranking_fixed';
+
+  function getRecords() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveRecord(score, role) {
+    let list = getRecords();
+    const isNewTop = list.length === 0 || score > list[0].score;
+    const now = new Date();
+    const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+
+    list.push({ score, role: role === 'yier' ? '一二' : '布布', time: timeStr });
+    list.sort((a, b) => b.score - a.score);
+    list = list.slice(0, 5);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch(e) {}
+
+    return isNewTop && score > 0;
+  }
+
+  function showRankModal() {
+    const list = getRecords();
+    const container = document.getElementById('rank-records-container');
+
+    if (list.length === 0) {
+      container.innerHTML = `<div style="font-weight:800; color:#8C5628; padding:20px;">还没有战绩，快去挑战第一盘吧！</div>`;
+    } else {
+      container.innerHTML = list.map((item, idx) => `
+        <div class="rank-row">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="rank-num">${idx + 1}</div>
+            <div style="text-align:left;">
+              <span style="font-weight:900;">${item.role}</span>
+              <span style="font-size:11px; font-weight:700; color:#8C5628; margin-left:4px;">${item.time}</span>
+            </div>
+          </div>
+          <div style="font-weight:900; font-size:18px; color:var(--accent-red);">${item.score} 分</div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('modal-rank').classList.add('active');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    Game.init();
+  });
+</script>
+</body>
+</html>
